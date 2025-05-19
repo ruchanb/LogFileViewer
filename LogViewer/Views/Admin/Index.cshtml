@@ -1,0 +1,57 @@
+@model List<LogFolderConfig>
+@{
+    ViewData["Title"] = "Manage Log Folders";
+}
+
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h1>Manage Log Folders</h1>
+        <p>Add, view or remove log folders that will be available for viewing</p>
+    </div>
+    <div>
+        <a asp-action="AddFolder" class="btn btn-primary">Add New Folder</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Configured Log Folders</h5>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Path</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var folder in Model)
+                        {
+                            <tr>
+                                <td>@folder.Name</td>
+                                <td>@folder.Path</td>
+                                <td>
+                                    <form asp-action="RemoveFolder" method="post" onsubmit="return confirm('Are you sure you want to remove this folder?');">
+                                        <input type="hidden" name="name" value="@folder.Name" />
+                                        <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="p-4 text-center">
+                <p class="mb-0">No log folders have been configured yet. Add a new folder to get started.</p>
+            </div>
+        }
+    </div>
+</div> 

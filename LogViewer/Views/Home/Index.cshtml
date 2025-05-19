@@ -1,0 +1,23 @@
+﻿@{
+    ViewData["Title"] = "Log Viewer";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Log Viewer Application</h1>
+    <p class="lead">A centralized system for viewing and analyzing server log files</p>
+    
+    @if (!User.Identity?.IsAuthenticated == true)
+    {
+        <div class="mt-4">
+            <p>Please log in to access the log viewer.</p>
+            <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg">Log In</a>
+        </div>
+    }
+    else
+    {
+        <div class="mt-4">
+            <a asp-controller="Home" asp-action="LogViewer" class="btn btn-primary btn-lg">Access Log Viewer</a>
+            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary btn-lg ms-2">Manage Log Folders</a>
+        </div>
+    }
+</div>

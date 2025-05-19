@@ -1,0 +1,77 @@
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  margin-bottom: 60px;
+}
+
+.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+  color: var(--bs-secondary-color);
+  text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+  text-align: start;
+}
+
+/* Exclusion Filters Styling */
+#exclusionFilters .accordion-body {
+    background-color: #fff3f3;
+    border: 1px solid #ffcdd2;
+    border-radius: 4px;
+    margin: 10px;
+}
+
+#exclusionFilters .form-label {
+    color: #d32f2f;
+}
+
+#exclusionFilters .form-control:focus {
+    border-color: #ef9a9a;
+    box-shadow: 0 0 0 0.25rem rgba(239, 154, 154, 0.25);
+}
+
+#exclusionFilters .form-check-input:checked {
+    background-color: #d32f2f;
+    border-color: #d32f2f;
+}
+
+#exclusionFilters .accordion-button:not(.collapsed) {
+    background-color: #ffebee;
+    color: #d32f2f;
+}
+
+#exclusionFilters .accordion-button:focus {
+    box-shadow: 0 0 0 0.25rem rgba(239, 154, 154, 0.25);
+}
+
+/* Time input styling */
+input[type="time"] {
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.5);
+}
+
+/* Force 24-hour format */
+input[type="time"]::-webkit-datetime-edit-ampm-field {
+    display: none;
+}
