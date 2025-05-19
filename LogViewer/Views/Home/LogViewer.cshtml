@@ -214,8 +214,9 @@
                         </div>
                     </div>
 
-                    <div class="d-grid">
+                    <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="resetFilters()">Reset Filters</button>
                     </div>
                 </form>
             </div>
@@ -316,6 +317,40 @@
         let allLogRows = [];
         let currentSortField = "timestamp";
         let currentSortDirection = "@(Model.FilterOptions.TableSortDirection.ToString().ToLower())";
+        
+        function resetFilters() {
+            // Clear text inputs
+            document.getElementById('search-text').value = '';
+            if (document.getElementById('exclusion-text')) {
+                document.getElementById('exclusion-text').value = '';
+            }
+            document.getElementById('start-date').value = '';
+            document.getElementById('start-time').value = '';
+            document.getElementById('end-date').value = '';
+            document.getElementById('end-time').value = '';
+            
+            // Reset sort direction to default
+            document.querySelector('input[name="SortDirection"][value="Descending"]').checked = true;
+            
+            // Uncheck all level checkboxes
+            document.querySelectorAll('input[name="Levels"]').forEach(cb => {
+                cb.checked = false;
+            });
+            
+            document.querySelectorAll('input[name="ExcludedLevels"]').forEach(cb => {
+                cb.checked = false;
+            });
+            
+            // Reset table sorting
+            currentSortField = 'timestamp';
+            currentSortDirection = 'descending';
+            
+            // Clear localStorage
+            localStorage.removeItem('logViewerFilters');
+            
+            // Apply the reset filters
+            applyFilters();
+        }
         
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
