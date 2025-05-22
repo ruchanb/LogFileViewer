@@ -364,3 +364,4 @@ FodyWeavers.xsd
 
 # log folder
 /LogViewer/config/logfolders.json
+*/appsettings.Development.json
