@@ -286,11 +286,11 @@
                                 @foreach (var log in Model.Logs)
                                 {
                                     <tr class="@GetLogRowClass(log.Level)" 
-                                        data-timestamp="@log.Timestamp.Ticks" 
                                         data-level="@log.Level" 
                                         data-message="@log.Message"
                                         data-date="@log.Timestamp.ToString("yyyy-MM-dd")"
-                                        data-time="@log.Timestamp.ToString("HH:mm:ss")">
+                                        data-time="@log.Timestamp.ToString("HH:mm:ss")"
+                                        data-position="@Model.Logs.IndexOf(log)">
                                         <td class="text-nowrap">@log.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
                                         <td class="text-nowrap">@log.Level</td>
                                         <td>@log.Message</td>
@@ -639,13 +639,16 @@
         
         function sortRows(rows) {
             return rows.sort((a, b) => {
-                let aValue = a.getAttribute(`data-${currentSortField}`);
-                let bValue = b.getAttribute(`data-${currentSortField}`);
+                let aValue, bValue;
                 
-                // Convert to appropriate types for comparison
                 if (currentSortField === 'timestamp') {
-                    aValue = BigInt(aValue);
-                    bValue = BigInt(bValue);
+                    // Use position for timestamp sorting
+                    aValue = parseInt(a.getAttribute('data-position'));
+                    bValue = parseInt(b.getAttribute('data-position'));
+                } else {
+                    // Use the actual field value for other sorts
+                    aValue = a.getAttribute(`data-${currentSortField}`);
+                    bValue = b.getAttribute(`data-${currentSortField}`);
                 }
                 
                 // Compare values
