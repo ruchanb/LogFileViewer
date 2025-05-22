@@ -3,11 +3,6 @@
     ViewData["Title"] = "Log Viewer";
 }
 
-<div class="mb-4">
-    <h1>Log Viewer</h1>
-    <p>View and analyze server logs with advanced filtering</p>
-</div>
-
 <div class="row">
     <div class="col-md-3">
         <div class="card mb-3">
@@ -224,7 +219,7 @@
     </div>
 
     <div class="col-md-9">
-        <div class="card">
+        <div class="card" style="height: calc(100vh - 90px); display: flex; flex-direction: column;">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     @if (!string.IsNullOrEmpty(Model.SelectedLogFile))
@@ -250,12 +245,12 @@
                     <span class="badge bg-info">Filter Sort: <span id="sort-direction-display">@(Model.FilterOptions.SortDirection == SortDirection.Ascending ? "Oldest First" : "Newest First")</span></span>
                 </div>
             </div>
-            <div class="card-body p-0">
+            <div class="card-body p-0" style="flex-grow: 1; overflow-y: auto;">
                 @if (Model.Logs.Any())
                 {
                     <div class="table-responsive">
                         <table class="table table-hover table-striped mb-0" id="logs-table">
-                            <thead>
+                            <thead class="sticky-top bg-white" style="z-index: 1;">
                                 <tr>
                                     <th>
                                         <a href="#" class="text-dark text-decoration-none d-flex align-items-center" 
