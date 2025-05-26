@@ -76,6 +76,19 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">Filtering Mode</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="server-side-filtering" checked />
+                            <label class="form-check-label" for="server-side-filtering">
+                                <span id="filtering-mode-label">Server-side Filtering</span>
+                                <small class="d-block text-muted" id="filtering-mode-description">
+                                    Filters are applied on the server (recommended for large files)
+                                </small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">Log Levels</label>
                         <div class="form-check">
                             <input class="form-check-input filter-input" type="checkbox" id="chk-trace" name="Levels" value="TRACE" 

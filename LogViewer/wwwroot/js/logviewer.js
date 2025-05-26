@@ -6,6 +6,8 @@ let currentFile = '';
 let currentSortField = "timestamp";
 let currentSortDirection = "descending";
 let isLoading = false;
+let allLogRows = []; // Store all log rows for client-side filtering
+let isServerSideFiltering = true; // Default to server-side filtering
 
 function resetFilters() {
     // Clear text inputs
@@ -55,6 +57,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load saved filters from localStorage
     loadSavedFilters();
     
+    // Set up filtering mode toggle
+    const serverSideToggle = document.getElementById('server-side-filtering');
+    if (serverSideToggle) {
+        serverSideToggle.addEventListener('change', function() {
+            isServerSideFiltering = this.checked;
+            updateFilteringModeUI();
+            
+            // If switching to client-side and we have data, load all logs first
+            if (!isServerSideFiltering && currentFolder && currentFile) {
+                loadAllLogsForClientSideFiltering();
+            } else if (isServerSideFiltering) {
+                // If switching back to server-side, apply current filters
+                applyFilters();
+            }
+            
+            saveFilters();
+        });
+        
+        updateFilteringModeUI();
+    }
+    
     // Set up event listeners for instant filtering
     document.querySelectorAll('.filter-input').forEach(input => {
         // Skip search text input - it will be handled separately
@@ -100,7 +123,8 @@ function saveFilters() {
         levels: Array.from(document.querySelectorAll('input[name="Levels"]:checked')).map(cb => cb.value),
         excludedLevels: Array.from(document.querySelectorAll('input[name="ExcludedLevels"]:checked')).map(cb => cb.value),
         currentSortField: currentSortField,
-        currentSortDirection: currentSortDirection
+        currentSortDirection: currentSortDirection,
+        isServerSideFiltering: isServerSideFiltering
     };
     
     localStorage.setItem('logViewerFilters', JSON.stringify(filters));
@@ -137,6 +161,16 @@ function loadSavedFilters() {
         // Restore table sorting
         currentSortField = filters.currentSortField || 'timestamp';
         currentSortDirection = filters.currentSortDirection || 'descending';
+        
+        // Restore filtering mode
+        if (filters.hasOwnProperty('isServerSideFiltering')) {
+            isServerSideFiltering = filters.isServerSideFiltering;
+            const serverSideToggle = document.getElementById('server-side-filtering');
+            if (serverSideToggle) {
+                serverSideToggle.checked = isServerSideFiltering;
+                updateFilteringModeUI();
+            }
+        }
         
         // Apply the loaded filters
         applyFilters();
@@ -187,6 +221,14 @@ function applyFilters(event) {
         return false;
     }
     
+    if (isServerSideFiltering) {
+        return applyServerSideFilters();
+    } else {
+        return applyClientSideFilters();
+    }
+}
+
+function applyServerSideFilters() {
     isLoading = true;
     showLoadingIndicator();
     
@@ -348,4 +390,249 @@ function setInitialSortDirection(direction) {
 function setCurrentFolderAndFile(folder, file) {
     currentFolder = folder;
     currentFile = file;
+}
+
+function updateFilteringModeUI() {
+    const label = document.getElementById('filtering-mode-label');
+    const description = document.getElementById('filtering-mode-description');
+    
+    if (isServerSideFiltering) {
+        label.textContent = 'Server-side Filtering';
+        description.textContent = 'Filters are applied on the server (recommended for large files)';
+    } else {
+        label.textContent = 'Client-side Filtering';
+        description.textContent = 'Filters are applied in the browser (faster for small files)';
+    }
+}
+
+function loadAllLogsForClientSideFiltering() {
+    if (isLoading || !currentFolder || !currentFile) {
+        return;
+    }
+    
+    isLoading = true;
+    showLoadingIndicator();
+    
+    // Request all logs without any filters for client-side filtering
+    const requestData = {
+        folder: currentFolder,
+        file: currentFile,
+        filterOptions: {
+            // Send minimal filter options to get all logs
+            searchText: '',
+            exclusionText: '',
+            startDate: '',
+            startTime: '',
+            endDate: '',
+            endTime: '',
+            sortDirection: 'Descending',
+            levels: [],
+            excludedLevels: [],
+            sortField: 0, // Timestamp
+            tableSortDirection: 1 // Descending
+        }
+    };
+    
+    fetch('/Home/FilterLogs', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Store all logs for client-side filtering
+            allLogRows = data.logs.map(log => ({
+                timestamp: log.timestamp,
+                level: log.level,
+                message: log.message,
+                date: log.date,
+                time: log.time,
+                position: log.position,
+                fullText: `${log.timestamp} ${log.level} ${log.message}`.toLowerCase()
+            }));
+            
+            // Apply current filters on client-side
+            applyClientSideFilters();
+        } else {
+            console.error('Server error:', data.message);
+            showError('Failed to load logs: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Network error:', error);
+        showError('Network error occurred while loading logs');
+    })
+    .finally(() => {
+        isLoading = false;
+        hideLoadingIndicator();
+    });
+}
+
+function applyClientSideFilters() {
+    // If we don't have all logs loaded, load them first
+    if (allLogRows.length === 0) {
+        loadAllLogsForClientSideFiltering();
+        return false;
+    }
+    
+    // Get filter values
+    const levels = Array.from(document.querySelectorAll('input[name="Levels"]:checked')).map(cb => cb.value);
+    const excludedLevels = Array.from(document.querySelectorAll('input[name="ExcludedLevels"]:checked')).map(cb => cb.value);
+    const searchText = document.getElementById('search-text').value.toLowerCase();
+    const exclusionText = document.getElementById('exclusion-text')?.value.toLowerCase() || '';
+    const startDate = document.getElementById('start-date').value;
+    const startTime = document.getElementById('start-time').value;
+    const endDate = document.getElementById('end-date').value;
+    const endTime = document.getElementById('end-time').value;
+    
+    // Create date objects for comparison
+    let startDateTime = null;
+    let endDateTime = null;
+    
+    if (startDate) {
+        startDateTime = new Date(startDate);
+        if (startTime) {
+            const [hours, minutes] = startTime.split(':');
+            startDateTime.setHours(parseInt(hours || 0), parseInt(minutes || 0), 0);
+        } else {
+            startDateTime.setHours(0, 0, 0);
+        }
+    }
+    
+    if (endDate) {
+        endDateTime = new Date(endDate);
+        if (endTime) {
+            const [hours, minutes] = endTime.split(':');
+            endDateTime.setHours(parseInt(hours || 0), parseInt(minutes || 0), 59);
+        } else {
+            endDateTime.setHours(23, 59, 59);
+        }
+    }
+    
+    // Parse search terms
+    const searchTerms = parseSearchTerms(searchText);
+    const exclusionTerms = parseSearchTerms(exclusionText);
+    
+    // Filter logs
+    let filteredLogs = allLogRows.filter(log => {
+        // Level filter
+        if (levels.length > 0 && !levels.includes(log.level)) {
+            return false;
+        }
+        
+        // Exclusion level filter
+        if (excludedLevels.length > 0 && excludedLevels.includes(log.level)) {
+            return false;
+        }
+        
+        // Date/time filter
+        if (startDateTime || endDateTime) {
+            const logDateTime = new Date(`${log.date}T${log.time}`);
+            
+            if (startDateTime && logDateTime < startDateTime) {
+                return false;
+            }
+            
+            if (endDateTime && logDateTime > endDateTime) {
+                return false;
+            }
+        }
+        
+        // Text search
+        if (searchText) {
+            // Check negative terms first (exclude)
+            if (searchTerms.negative.some(term => log.fullText.includes(term))) {
+                return false;
+            }
+            
+            // Check quoted phrases (all must match)
+            if (searchTerms.quoted.length > 0 && 
+                !searchTerms.quoted.every(term => log.fullText.includes(term))) {
+                return false;
+            }
+            
+            // Check positive terms (at least one must match if any exist)
+            if (searchTerms.positive.length > 0 && 
+                !searchTerms.positive.some(term => log.fullText.includes(term))) {
+                return false;
+            }
+        }
+        
+        // Exclusion text filter
+        if (exclusionText) {
+            // Check if any exclusion terms match
+            if (exclusionTerms.positive.some(term => log.fullText.includes(term))) {
+                return false;
+            }
+            
+            if (exclusionTerms.quoted.some(term => log.fullText.includes(term))) {
+                return false;
+            }
+        }
+        
+        return true;
+    });
+    
+    // Apply sorting
+    filteredLogs = applySorting(filteredLogs);
+    
+    // Update table and counts
+    updateTable(filteredLogs);
+    updateCounts(filteredLogs.length, allLogRows.length);
+    
+    return false;
+}
+
+function parseSearchTerms(text) {
+    if (!text) return { positive: [], negative: [], quoted: [] };
+    
+    const terms = { positive: [], negative: [], quoted: [] };
+    
+    // Find quoted phrases
+    const quotedRegex = /"([^"]+)"/g;
+    let match;
+    while ((match = quotedRegex.exec(text)) !== null) {
+        terms.quoted.push(match[1].toLowerCase());
+        text = text.replace(match[0], ' ');
+    }
+    
+    // Split remaining text into words
+    const words = text.split(/\s+/).filter(word => word.length > 0);
+    
+    for (const word of words) {
+        if (word.startsWith('-') && word.length > 1) {
+            terms.negative.push(word.substring(1).toLowerCase());
+        } else {
+            terms.positive.push(word.toLowerCase());
+        }
+    }
+    
+    return terms;
+}
+
+function applySorting(logs) {
+    return logs.sort((a, b) => {
+        let comparison = 0;
+        
+        switch (currentSortField) {
+            case 'timestamp':
+                comparison = new Date(a.timestamp) - new Date(b.timestamp);
+                break;
+            case 'level':
+                comparison = a.level.localeCompare(b.level);
+                break;
+            case 'message':
+                comparison = a.message.localeCompare(b.message);
+                break;
+            default:
+                comparison = new Date(a.timestamp) - new Date(b.timestamp);
+        }
+        
+        return currentSortDirection === 'ascending' ? comparison : -comparison;
+    });
 } 
