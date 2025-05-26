@@ -1,0 +1,67 @@
+/* LogViewer Styles */
+
+/* Base styles (always apply) */
+#logs-table tbody td:last-child,
+#logs-table tbody td:last-child span {
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.9em;
+}
+
+/* Light Theme Table Colors (explicit definitions for better control) */
+/* Default light theme uses Bootstrap's default colors, but we'll ensure proper contrast */
+
+/* Light theme table headers */
+#logs-table thead th a.text-dark {
+    color: #212529 !important; /* Dark text for light background */
+}
+
+/* Light theme table body - Error/Fatal logs */
+#logs-table tbody tr.table-danger,
+#logs-table tbody tr.table-danger td {
+    background-color: #f8d7da !important; /* Light red background */
+    color: #721c24 !important; /* Dark red text for contrast */
+    border-color: #f5c6cb !important;
+}
+
+/* Light theme table body - Warning logs */
+#logs-table tbody tr.table-warning,
+#logs-table tbody tr.table-warning td {
+    background-color: #fff3cd !important; /* Light yellow background */
+    color: #856404 !important; /* Dark yellow/brown text for contrast */
+    border-color: #ffeaa7 !important;
+}
+
+/* Warning logs on alternate/striped rows - use black text for better contrast */
+#logs-table.table-striped tbody tr.table-warning:nth-child(even),
+#logs-table.table-striped tbody tr.table-warning:nth-child(even) td {
+    color: #000000 !important; /* Black text on striped warning rows */
+}
+
+/* Light theme table body - Info logs */
+#logs-table tbody tr.text-info,
+#logs-table tbody tr.text-info td {
+    color: #0c5460 !important; /* Dark teal for good contrast */
+}
+
+/* Light theme table body - Debug logs */
+#logs-table tbody tr.text-light,
+#logs-table tbody tr.text-light td {
+    color: #495057 !important; /* Dark gray for visibility on light background */
+}
+
+/* Light theme table body - Trace logs */
+#logs-table tbody tr.text-secondary,
+#logs-table tbody tr.text-secondary td {
+    color: #6c757d !important; /* Medium gray */
+}
+
+/* Ensure proper hover states */
+#logs-table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.075) !important;
+}
+
+/* Special hover handling for colored rows */
+#logs-table tbody tr.table-danger:hover,
+#logs-table tbody tr.table-warning:hover {
+    filter: brightness(0.9);
+} 
