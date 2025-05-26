@@ -1,5 +1,13 @@
 /* LogViewer Styles */
 
+/* Sidebar styling */
+.sidebar {
+    height: calc(100vh - 90px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
 /* Base styles (always apply) */
 #logs-table tbody td:last-child,
 #logs-table tbody td:last-child span {

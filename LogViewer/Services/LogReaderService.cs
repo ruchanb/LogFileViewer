@@ -224,9 +224,15 @@ namespace LogViewer.Services
             // Exclude specific log levels
             if (filterOptions.ExcludedLevels != null && filterOptions.ExcludedLevels.Any())
             {
+                _logger.LogInformation("Applying excluded levels filter: {ExcludedLevels}", string.Join(", ", filterOptions.ExcludedLevels));
+                
+                var beforeCount = filteredEntries.Count;
+                
                 filteredEntries = filteredEntries
                     .Where(e => !filterOptions.ExcludedLevels.Contains(e.Level))
                     .ToList();
+                
+                _logger.LogInformation("Excluded levels filter: {BeforeCount} -> {AfterCount} entries", beforeCount, filteredEntries.Count);
             }
 
             // Filter by combined date-time range
@@ -260,13 +266,19 @@ namespace LogViewer.Services
             // Apply exclusion text filter
             if (!string.IsNullOrWhiteSpace(filterOptions.ExclusionText))
             {
+                _logger.LogInformation("Applying exclusion text filter: {ExclusionText}", filterOptions.ExclusionText);
+                
                 // Parse exclusion query to handle Elasticsearch-like syntax
                 var exclusionParts = ParseSearchQuery(filterOptions.ExclusionText);
+                
+                var beforeCount = filteredEntries.Count;
                 
                 // Remove entries that match the exclusion criteria
                 filteredEntries = filteredEntries
                     .Where(e => !MatchesExclusionQuery(e, exclusionParts))
                     .ToList();
+                
+                _logger.LogInformation("Exclusion filter: {BeforeCount} -> {AfterCount} entries", beforeCount, filteredEntries.Count);
             }
 
             // Note: Table sorting will be applied at the controller level
@@ -360,26 +372,36 @@ namespace LogViewer.Services
         {
             var fullText = entry.FullText.ToLower();
             
-            // Check for negative terms (at least one must be present)
+            // For exclusion, we want to exclude entries that contain any of the specified terms
+            // Check for quoted phrases (if any are present, exclude the entry)
+            if (exclusionParts.TryGetValue("quoted", out var quotedTerms))
+            {
+                if (quotedTerms.Any(term => fullText.Contains(term.ToLower())))
+                {
+                    return true; // Exclude this entry
+                }
+            }
+            
+            // Check for positive terms (if any are present, exclude the entry)
+            if (exclusionParts.TryGetValue("positive", out var positiveTerms))
+            {
+                if (positiveTerms.Any(term => fullText.Contains(term.ToLower())))
+                {
+                    return true; // Exclude this entry
+                }
+            }
+            
+            // Check for negative terms (if any are present, DON'T exclude the entry)
             if (exclusionParts.TryGetValue("negative", out var negativeTerms))
             {
                 if (negativeTerms.Any(term => fullText.Contains(term.ToLower())))
                 {
-                    return true;
+                    return false; // Don't exclude this entry
                 }
             }
             
-            // Check for positive terms (at least one must be present)
-            if (exclusionParts.TryGetValue("positive", out var positiveTerms))
-            {
-                if (positiveTerms.Any() && !positiveTerms.Any(term => fullText.Contains(term.ToLower())))
-                {
-                    return true;
-                }
-            }
-            
-            // If we got here and there are exclusion terms, the entry matched the criteria
-            return exclusionParts.Any();
+            // If no exclusion criteria matched, don't exclude the entry
+            return false;
         }
 
         public async Task<List<LogEntry>> ReadMultipleLogFilesAsync(string folderPath, IEnumerable<string> fileNames, LogFilterOptions? filterOptions = null)

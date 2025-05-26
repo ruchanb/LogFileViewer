@@ -7,8 +7,10 @@
     <link rel="stylesheet" href="~/css/logviewer.css" asp-append-version="true" />
 }
 
+@Html.AntiForgeryToken()
+
 <div class="row" id="logViewerContainer">
-    <div class="col-md-2">
+    <div class="col-md-2 sidebar">
         <div class="card mb-3">
             <div class="card-header">
                 <h5 class="mb-0">Log Folders</h5>
@@ -315,6 +317,9 @@
     <script>
         // Set the initial sort direction from the server model
         setInitialSortDirection("@(Model.FilterOptions.TableSortDirection.ToString().ToLower())");
+        
+        // Set current folder and file for AJAX calls
+        setCurrentFolderAndFile("@Model.FilterOptions.LogFolder", "@Model.SelectedLogFile");
     </script>
 }
 
