@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show active sort indicator
     updateSortIndicators();
     
-    // Apply filters on initial load if we have folder and file
+    // Always load logs when folder and file are available since server doesn't load them anymore
     if (currentFolder && currentFile) {
         applyFilters();
     }
@@ -172,8 +172,8 @@ function loadSavedFilters() {
             }
         }
         
-        // Apply the loaded filters
-        applyFilters();
+        // Don't automatically apply filters here - let the initialization logic handle it
+        // to avoid duplicate loading
     }
 }
 

@@ -265,61 +265,55 @@
                 </div>
             </div>
             <div class="card-body p-0" style="flex-grow: 1; overflow-y: auto;">
-                @if (Model.Logs.Any())
-                {
-                    <div class="table-responsive">
-                        <table class="table table-hover table-striped mb-0" id="logs-table">
-                            <thead class="sticky-top" style="z-index: 1;">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0" id="logs-table">
+                        <thead class="sticky-top" style="z-index: 1;">
+                            <tr>
+                                <th>
+                                    <a href="#" class="text-dark text-decoration-none d-flex align-items-center" 
+                                       onclick="sortTable('timestamp', event)">
+                                        Time
+                                        <span class="ms-1 sort-indicator" data-field="timestamp">
+                                            @(Model.FilterOptions.TableSortDirection == SortDirection.Ascending ? "▲" : "▼")
+                                        </span>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="#" class="text-dark text-decoration-none d-flex align-items-center"
+                                       onclick="sortTable('level', event)">
+                                        Level
+                                        <span class="ms-1 sort-indicator" data-field="level" style="display:none;">▼</span>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="#" class="text-dark text-decoration-none"
+                                       onclick="sortTable('message', event)">
+                                        Message
+                                        <span class="ms-1 sort-indicator" data-field="message" style="display:none;">▼</span>
+                                    </a>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!string.IsNullOrEmpty(Model.SelectedLogFile))
+                            {
                                 <tr>
-                                    <th>
-                                        <a href="#" class="text-dark text-decoration-none d-flex align-items-center" 
-                                           onclick="sortTable('timestamp', event)">
-                                            Time
-                                            <span class="ms-1 sort-indicator" data-field="timestamp">
-                                                @(Model.FilterOptions.TableSortDirection == SortDirection.Ascending ? "▲" : "▼")
-                                            </span>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="#" class="text-dark text-decoration-none d-flex align-items-center"
-                                           onclick="sortTable('level', event)">
-                                            Level
-                                            <span class="ms-1 sort-indicator" data-field="level" style="display:none;">▼</span>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="#" class="text-dark text-decoration-none"
-                                           onclick="sortTable('message', event)">
-                                            Message
-                                            <span class="ms-1 sort-indicator" data-field="message" style="display:none;">▼</span>
-                                        </a>
-                                    </th>
+                                    <td colspan="3" class="text-center p-3">
+                                        <i class="fas fa-spinner fa-spin"></i> Loading logs...
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var log in Model.Logs)
-                                {
-                                    <tr class="@GetLogRowClass(log.Level)" 
-                                        data-level="@log.Level" 
-                                        data-message="@log.Message"
-                                        data-date="@log.Timestamp.ToString("yyyy-MM-dd")"
-                                        data-time="@log.Timestamp.ToString("HH:mm:ss")"
-                                        data-position="@Model.Logs.IndexOf(log)">
-                                        <td class="text-nowrap">@log.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
-                                        <td class="text-nowrap">@log.Level</td>
-                                        <td>@log.Message</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-                else
-                {
-                    <div class="p-4 text-center">
-                        <p class="mb-0">No log entries found</p>
-                    </div>
-                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="3" class="text-center p-3">
+                                        Please select a log file to view
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

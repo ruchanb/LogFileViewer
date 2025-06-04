@@ -73,27 +73,18 @@ public class HomeController : Controller
             if (!string.IsNullOrEmpty(file))
             {
                 viewModel.SelectedLogFile = file;
-                var logs = await _logReaderService.ReadLogFileAsync(folder, file, viewModel.FilterOptions);
-                
-                // Apply table sorting
-                logs = ApplyTableSorting(logs, viewModel.FilterOptions.SortField, viewModel.FilterOptions.TableSortDirection);
-                
-                viewModel.Logs = logs;
-                viewModel.TotalCount = logs.Count;
-                viewModel.DisplayedCount = logs.Count;
+                // Don't load logs here - let JavaScript handle all log loading
+                viewModel.Logs = new List<LogEntry>();
+                viewModel.TotalCount = 0;
+                viewModel.DisplayedCount = 0;
             }
             else if (viewModel.AvailableLogFiles.Any())
             {
-                // If no specific file selected, show the most recent one
+                // If no specific file selected, select the most recent one but don't load logs
                 viewModel.SelectedLogFile = viewModel.AvailableLogFiles.First().FileName;
-                var logs = await _logReaderService.ReadLogFileAsync(folder, viewModel.SelectedLogFile, viewModel.FilterOptions);
-                
-                // Apply table sorting
-                logs = ApplyTableSorting(logs, viewModel.FilterOptions.SortField, viewModel.FilterOptions.TableSortDirection);
-                
-                viewModel.Logs = logs;
-                viewModel.TotalCount = logs.Count;
-                viewModel.DisplayedCount = logs.Count;
+                viewModel.Logs = new List<LogEntry>();
+                viewModel.TotalCount = 0;
+                viewModel.DisplayedCount = 0;
             }
         }
 
