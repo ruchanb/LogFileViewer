@@ -173,6 +173,7 @@ namespace LogViewer.Services
                     string line;
                     int lineCount = 0;
                     int parsedCount = 0;
+                    LogEntry? currentEntry = null;
                     
                     while ((line = (await reader.ReadLineAsync())!) != null)
                     {
@@ -182,14 +183,36 @@ namespace LogViewer.Services
                             var entry = LogEntry.ParseLogLine(line, fileName);
                             if (entry != null)
                             {
-                                entries.Add(entry);
-                                parsedCount++;
+                                // If we have a current entry, add it to the list before starting a new one
+                                if (currentEntry != null)
+                                {
+                                    entries.Add(currentEntry);
+                                    parsedCount++;
+                                }
+                                
+                                // Start tracking this new entry
+                                currentEntry = entry;
                             }
+                            else if (currentEntry != null)
+                            {
+                                // This line doesn't match the log pattern, so it's a continuation of the current entry
+                                // Append it to the current entry's message and full text
+                                currentEntry.Message += Environment.NewLine + line;
+                                currentEntry.FullText += Environment.NewLine + line;
+                            }
+                            // If entry is null and currentEntry is null, this line is orphaned (ignore it)
                         }
                         catch (Exception ex)
                         {
                             _logger.LogError(ex, "Error parsing line {LineNum} in file {File}", lineCount, fullPath);
                         }
+                    }
+                    
+                    // Don't forget to add the last entry if it exists
+                    if (currentEntry != null)
+                    {
+                        entries.Add(currentEntry);
+                        parsedCount++;
                     }
                     
                     _logger.LogInformation("Parsed {ParsedCount} log entries from {TotalCount} lines in {File}", 

@@ -13,6 +13,8 @@
 #logs-table tbody td:last-child span {
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-size: 0.9em;
+    white-space: pre-wrap; /* Preserve whitespace and wrap long lines */
+    word-wrap: break-word; /* Break long words if necessary */
 }
 
 /* Light Theme Table Colors (explicit definitions for better control) */
