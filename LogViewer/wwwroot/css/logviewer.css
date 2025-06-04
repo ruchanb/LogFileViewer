@@ -17,6 +17,58 @@
     word-wrap: break-word; /* Break long words if necessary */
 }
 
+/* Search term highlighting */
+.search-highlight {
+    background-color: #ffeb3b;
+    color: #000;
+    font-weight: bold;
+    padding: 0 1px;
+    border-radius: 2px;
+}
+
+/* Different highlight styles for different term types */
+.search-highlight.quoted-term {
+    background-color: #4caf50;
+    color: #fff;
+}
+
+.search-highlight.positive-term {
+    background-color: #ffeb3b;
+    color: #000;
+}
+
+/* Dark theme support for highlighting */
+[data-bs-theme="dark"] .search-highlight {
+    background-color: #ffc107;
+    color: #000;
+}
+
+[data-bs-theme="dark"] .search-highlight.quoted-term {
+    background-color: #28a745;
+    color: #fff;
+}
+
+/* Ensure highlights are visible on colored log rows */
+.table-danger .search-highlight {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+}
+
+.table-warning .search-highlight {
+    background-color: #dc3545 !important;
+    color: #fff !important;
+}
+
+.table-danger .search-highlight.quoted-term {
+    background-color: #28a745 !important;
+    color: #fff !important;
+}
+
+.table-warning .search-highlight.quoted-term {
+    background-color: #28a745 !important;
+    color: #fff !important;
+}
+
 /* Collapsible log message styles */
 .log-message-container {
     position: relative;

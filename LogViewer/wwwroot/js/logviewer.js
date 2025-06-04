@@ -36,6 +36,9 @@ function resetFilters() {
     currentSortField = 'timestamp';
     currentSortDirection = 'descending';
     
+    // Clear search highlighting
+    clearSearchHighlighting();
+    
     // Clear localStorage
     localStorage.removeItem('logViewerFilters');
     
@@ -91,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Set up search text with Enter key only
+    // Set up search text with Enter key for filtering
     const searchInput = document.getElementById('search-text');
     if (searchInput) {
         searchInput.addEventListener('keydown', function(event) {
@@ -313,13 +316,18 @@ function updateTable(logs) {
         row.setAttribute('data-date', log.date);
         row.setAttribute('data-time', log.time);
         row.setAttribute('data-position', log.position);
+        row.setAttribute('data-timestamp', log.timestamp);
         
         // Create the message cell with collapsible functionality
         const messageCell = createCollapsibleMessageCell(log.message, index);
         
+        // Apply highlighting to timestamp and level
+        const highlightedTimestamp = highlightSearchTerms(log.timestamp);
+        const highlightedLevel = highlightSearchTerms(log.level);
+        
         row.innerHTML = `
-            <td class="text-nowrap">${log.timestamp}</td>
-            <td class="text-nowrap">${log.level}</td>
+            <td class="text-nowrap">${highlightedTimestamp}</td>
+            <td class="text-nowrap">${highlightedLevel}</td>
         `;
         
         // Append the message cell
@@ -342,13 +350,16 @@ function updateTable(logs) {
 function createCollapsibleMessageCell(message, index) {
     const td = document.createElement('td');
     
+    // Apply search highlighting to the message
+    const highlightedMessage = highlightSearchTerms(message);
+    
     // Check if message has multiple lines (more than 2)
     const lines = message.split('\n');
     const hasMultipleLines = lines.length > 2;
     
     if (!hasMultipleLines) {
-        // Simple case: just show the message as-is
-        td.innerHTML = escapeHtml(message);
+        // Simple case: just show the message with highlighting
+        td.innerHTML = highlightedMessage;
         return td;
     }
     
@@ -359,7 +370,7 @@ function createCollapsibleMessageCell(message, index) {
     const content = document.createElement('div');
     content.className = 'log-message-content collapsed';
     content.id = `log-content-${index}`;
-    content.innerHTML = escapeHtml(message);
+    content.innerHTML = highlightedMessage;
     
     const expandButton = document.createElement('button');
     expandButton.className = 'log-expand-button';
@@ -394,6 +405,94 @@ function createCollapsibleMessageCell(message, index) {
     td.appendChild(container);
     
     return td;
+}
+
+// Store current search terms for highlighting
+let currentSearchTerms = { positive: [], negative: [], quoted: [] };
+
+function highlightSearchTerms(text) {
+    if (!text) return '';
+    
+    // Get current search text
+    const searchInput = document.getElementById('search-text');
+    const searchText = searchInput ? searchInput.value.trim() : '';
+    
+    if (!searchText) {
+        return escapeHtml(text);
+    }
+    
+    // Parse current search terms
+    currentSearchTerms = parseSearchTerms(searchText);
+    
+    // Escape HTML first
+    let highlightedText = escapeHtml(text);
+    
+    // Apply highlighting for quoted terms (highest priority - green)
+    currentSearchTerms.quoted.forEach(term => {
+        if (term) {
+            const regex = new RegExp(`(${escapeRegExp(term)})`, 'gi');
+            highlightedText = highlightedText.replace(regex, '<span class="search-highlight quoted-term">$1</span>');
+        }
+    });
+    
+    // Apply highlighting for positive terms (yellow)
+    currentSearchTerms.positive.forEach(term => {
+        if (term) {
+            // Make sure we don't highlight inside existing highlight spans
+            const regex = new RegExp(`(?![^<]*>)(?![^<]*</span>)(${escapeRegExp(term)})`, 'gi');
+            highlightedText = highlightedText.replace(regex, '<span class="search-highlight positive-term">$1</span>');
+        }
+    });
+    
+    return highlightedText;
+}
+
+function escapeRegExp(string) {
+    // Escape special regex characters
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function updateSearchTermsHighlighting() {
+    // Re-apply highlighting to all visible log messages
+    const tableBody = document.querySelector('#logs-table tbody');
+    if (!tableBody) return;
+    
+    const rows = tableBody.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        const originalMessage = row.getAttribute('data-message');
+        const originalTimestamp = row.getAttribute('data-timestamp');
+        const originalLevel = row.getAttribute('data-level');
+        
+        if (!originalMessage || !originalTimestamp || !originalLevel) return;
+        
+        // Update timestamp cell (first cell)
+        const timestampCell = row.querySelector('td:first-child');
+        if (timestampCell) {
+            timestampCell.innerHTML = highlightSearchTerms(originalTimestamp);
+        }
+        
+        // Update level cell (second cell)
+        const levelCell = row.querySelector('td:nth-child(2)');
+        if (levelCell) {
+            levelCell.innerHTML = highlightSearchTerms(originalLevel);
+        }
+        
+        // Update message cell (last cell)
+        const messageCell = row.querySelector('td:last-child');
+        if (!messageCell) return;
+        
+        // Check if it's a collapsible message or simple message
+        const collapsibleContent = messageCell.querySelector('.log-message-content');
+        
+        if (collapsibleContent) {
+            // This is a collapsible message - update the content
+            collapsibleContent.innerHTML = highlightSearchTerms(originalMessage);
+        } else {
+            // This is a simple message cell - update directly
+            messageCell.innerHTML = highlightSearchTerms(originalMessage);
+        }
+    });
 }
 
 function getLogRowClass(level) {
@@ -696,4 +795,21 @@ function applySorting(logs) {
         
         return currentSortDirection === 'ascending' ? comparison : -comparison;
     });
+}
+
+function clearSearchHighlighting() {
+    // Remove all search highlights from visible content in all columns
+    const tableBody = document.querySelector('#logs-table tbody');
+    if (tableBody) {
+        const highlightedElements = tableBody.querySelectorAll('.search-highlight');
+        highlightedElements.forEach(element => {
+            // Replace the highlighted span with its text content
+            const parent = element.parentNode;
+            parent.replaceChild(document.createTextNode(element.textContent), element);
+            parent.normalize(); // Merge adjacent text nodes
+        });
+    }
+    
+    // Clear current search terms
+    currentSearchTerms = { positive: [], negative: [], quoted: [] };
 } 
