@@ -17,6 +17,75 @@
     word-wrap: break-word; /* Break long words if necessary */
 }
 
+/* Collapsible log message styles */
+.log-message-container {
+    position: relative;
+}
+
+.log-message-content {
+    transition: max-height 0.3s ease;
+    overflow: hidden;
+}
+
+.log-message-content.collapsed {
+    max-height: 2.8em; /* Approximately 2 lines */
+    line-height: 1.4em;
+}
+
+.log-message-content.expanded {
+    max-height: none;
+}
+
+.log-expand-button {
+    background: none;
+    border: none;
+    color: #007bff;
+    cursor: pointer;
+    font-size: 0.8em;
+    padding: 2px 4px;
+    margin-top: 2px;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.log-expand-button:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+.log-expand-button:focus {
+    outline: 1px dotted #007bff;
+    outline-offset: 2px;
+}
+
+/* Visual indicator for truncated content */
+.log-message-content.collapsed::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 50px;
+    height: 1.4em;
+    background: linear-gradient(to right, transparent, currentColor);
+    background: linear-gradient(to right, transparent 30%, var(--bs-body-bg, #fff) 90%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Dark theme support for the fade effect */
+[data-bs-theme="dark"] .log-message-content.collapsed::after {
+    background: linear-gradient(to right, transparent 30%, var(--bs-dark, #212529) 90%);
+}
+
+/* Special handling for colored log rows */
+.table-danger .log-message-content.collapsed::after {
+    background: linear-gradient(to right, transparent 30%, #f8d7da 90%);
+}
+
+.table-warning .log-message-content.collapsed::after {
+    background: linear-gradient(to right, transparent 30%, #fff3cd 90%);
+}
+
 /* Light Theme Table Colors (explicit definitions for better control) */
 /* Default light theme uses Bootstrap's default colors, but we'll ensure proper contrast */
 

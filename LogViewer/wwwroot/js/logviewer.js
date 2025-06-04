@@ -305,7 +305,7 @@ function updateTable(logs) {
     tableBody.innerHTML = '';
     
     // Add filtered rows
-    logs.forEach(log => {
+    logs.forEach((log, index) => {
         const row = document.createElement('tr');
         row.className = getLogRowClass(log.level);
         row.setAttribute('data-level', log.level);
@@ -314,12 +314,16 @@ function updateTable(logs) {
         row.setAttribute('data-time', log.time);
         row.setAttribute('data-position', log.position);
         
+        // Create the message cell with collapsible functionality
+        const messageCell = createCollapsibleMessageCell(log.message, index);
+        
         row.innerHTML = `
             <td class="text-nowrap">${log.timestamp}</td>
             <td class="text-nowrap">${log.level}</td>
-            <td>${escapeHtml(log.message)}</td>
         `;
         
+        // Append the message cell
+        row.appendChild(messageCell);
         tableBody.appendChild(row);
     });
     
@@ -333,6 +337,63 @@ function updateTable(logs) {
         emptyRow.appendChild(emptyCell);
         tableBody.appendChild(emptyRow);
     }
+}
+
+function createCollapsibleMessageCell(message, index) {
+    const td = document.createElement('td');
+    
+    // Check if message has multiple lines (more than 2)
+    const lines = message.split('\n');
+    const hasMultipleLines = lines.length > 2;
+    
+    if (!hasMultipleLines) {
+        // Simple case: just show the message as-is
+        td.innerHTML = escapeHtml(message);
+        return td;
+    }
+    
+    // Complex case: create collapsible container
+    const container = document.createElement('div');
+    container.className = 'log-message-container';
+    
+    const content = document.createElement('div');
+    content.className = 'log-message-content collapsed';
+    content.id = `log-content-${index}`;
+    content.innerHTML = escapeHtml(message);
+    
+    const expandButton = document.createElement('button');
+    expandButton.className = 'log-expand-button';
+    expandButton.textContent = 'Show more...';
+    expandButton.setAttribute('aria-expanded', 'false');
+    expandButton.setAttribute('aria-controls', `log-content-${index}`);
+    
+    // Add click handler for expand/collapse
+    expandButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const isExpanded = content.classList.contains('expanded');
+        
+        if (isExpanded) {
+            // Collapse
+            content.classList.remove('expanded');
+            content.classList.add('collapsed');
+            expandButton.textContent = 'Show more...';
+            expandButton.setAttribute('aria-expanded', 'false');
+        } else {
+            // Expand
+            content.classList.remove('collapsed');
+            content.classList.add('expanded');
+            expandButton.textContent = 'Show less';
+            expandButton.setAttribute('aria-expanded', 'true');
+        }
+    });
+    
+    container.appendChild(content);
+    container.appendChild(expandButton);
+    td.appendChild(container);
+    
+    return td;
 }
 
 function getLogRowClass(level) {
