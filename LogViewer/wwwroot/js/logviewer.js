@@ -307,8 +307,16 @@ function updateTable(logs) {
     // Clear current rows
     tableBody.innerHTML = '';
     
+    // For very large datasets, limit the number of rows to prevent crashes
+    const maxDisplayRows = 5000;
+    const logsToDisplay = logs.length > maxDisplayRows ? logs.slice(0, maxDisplayRows) : logs;
+    
+    if (logs.length > maxDisplayRows) {
+        console.warn(`Displaying first ${maxDisplayRows} of ${logs.length} log entries to prevent browser crashes`);
+    }
+    
     // Add filtered rows
-    logs.forEach((log, index) => {
+    logsToDisplay.forEach((log, index) => {
         const row = document.createElement('tr');
         row.className = getLogRowClass(log.level);
         row.setAttribute('data-level', log.level);
@@ -336,11 +344,11 @@ function updateTable(logs) {
     });
     
     // Show 'no records' message if needed
-    if (logs.length === 0) {
+    if (logsToDisplay.length === 0) {
         const emptyRow = document.createElement('tr');
         const emptyCell = document.createElement('td');
         emptyCell.colSpan = 3;
-        emptyCell.textContent = 'No matching logs found';
+        emptyCell.textContent = logs.length === 0 ? 'No matching logs found' : 'File too large to display - please apply filters to reduce the result set';
         emptyCell.className = 'text-center p-3';
         emptyRow.appendChild(emptyCell);
         tableBody.appendChild(emptyRow);
@@ -452,7 +460,7 @@ function measureTextHeight(text) {
 }
 
 // Store current search terms for highlighting
-let currentSearchTerms = { positive: [], negative: [], quoted: [] };
+let currentSearchTerms = { positive: [], negative: [], quoted: [], lastSearchText: '' };
 
 function highlightSearchTerms(text) {
     if (!text) return '';
@@ -462,31 +470,50 @@ function highlightSearchTerms(text) {
     const searchText = searchInput ? searchInput.value.trim() : '';
     
     if (!searchText) {
-        return escapeHtml(text);
+        return escapeHtmlFast(text);
     }
     
-    // Parse current search terms
-    currentSearchTerms = parseSearchTerms(searchText);
+    // For very large text (>10k chars), skip highlighting to prevent crashes
+    if (text.length > 10000) {
+        return escapeHtmlFast(text);
+    }
+    
+    // Parse current search terms only once per search
+    if (!currentSearchTerms || currentSearchTerms.lastSearchText !== searchText) {
+        currentSearchTerms = parseSearchTerms(searchText);
+        currentSearchTerms.lastSearchText = searchText;
+    }
+    
+    // If no actual terms to highlight, just escape and return
+    if (currentSearchTerms.positive.length === 0 && currentSearchTerms.quoted.length === 0) {
+        return escapeHtmlFast(text);
+    }
     
     // Escape HTML first
-    let highlightedText = escapeHtml(text);
+    let highlightedText = escapeHtmlFast(text);
     
-    // Apply highlighting for quoted terms (highest priority - green)
-    currentSearchTerms.quoted.forEach(term => {
-        if (term) {
-            const regex = new RegExp(`(${escapeRegExp(term)})`, 'gi');
-            highlightedText = highlightedText.replace(regex, '<span class="search-highlight quoted-term">$1</span>');
-        }
-    });
-    
-    // Apply highlighting for positive terms (yellow)
-    currentSearchTerms.positive.forEach(term => {
-        if (term) {
-            // Make sure we don't highlight inside existing highlight spans
-            const regex = new RegExp(`(?![^<]*>)(?![^<]*</span>)(${escapeRegExp(term)})`, 'gi');
-            highlightedText = highlightedText.replace(regex, '<span class="search-highlight positive-term">$1</span>');
-        }
-    });
+    try {
+        // Apply highlighting for quoted terms (highest priority - green)
+        currentSearchTerms.quoted.forEach(term => {
+            if (term && term.length > 0) {
+                const regex = new RegExp(`(${escapeRegExp(term)})`, 'gi');
+                highlightedText = highlightedText.replace(regex, '<span class="search-highlight quoted-term">$1</span>');
+            }
+        });
+        
+        // Apply highlighting for positive terms (yellow)
+        currentSearchTerms.positive.forEach(term => {
+            if (term && term.length > 0) {
+                // Make sure we don't highlight inside existing highlight spans
+                const regex = new RegExp(`(?![^<]*>)(?![^<]*</span>)(${escapeRegExp(term)})`, 'gi');
+                highlightedText = highlightedText.replace(regex, '<span class="search-highlight positive-term">$1</span>');
+            }
+        });
+    } catch (error) {
+        console.warn('Error applying search highlighting:', error);
+        // Fallback to just escaped text if highlighting fails
+        return escapeHtmlFast(text);
+    }
     
     return highlightedText;
 }
@@ -503,40 +530,70 @@ function updateSearchTermsHighlighting() {
     
     const rows = tableBody.querySelectorAll('tr');
     
-    rows.forEach(row => {
-        const originalMessage = row.getAttribute('data-message');
-        const originalTimestamp = row.getAttribute('data-timestamp');
-        const originalLevel = row.getAttribute('data-level');
+    // Limit the number of rows we process at once to prevent UI freezing
+    const maxRowsPerBatch = 100;
+    const totalRows = rows.length;
+    
+    if (totalRows > maxRowsPerBatch) {
+        // Process in batches for large datasets
+        let currentBatch = 0;
         
-        if (!originalMessage || !originalTimestamp || !originalLevel) return;
-        
-        // Update timestamp cell (first cell)
-        const timestampCell = row.querySelector('td:first-child');
-        if (timestampCell) {
-            timestampCell.innerHTML = highlightSearchTerms(originalTimestamp);
+        function processBatch() {
+            const startIndex = currentBatch * maxRowsPerBatch;
+            const endIndex = Math.min(startIndex + maxRowsPerBatch, totalRows);
+            
+            for (let i = startIndex; i < endIndex; i++) {
+                updateRowHighlighting(rows[i]);
+            }
+            
+            currentBatch++;
+            
+            if (startIndex < totalRows) {
+                // Use requestAnimationFrame to allow UI updates between batches
+                requestAnimationFrame(processBatch);
+            }
         }
         
-        // Update level cell (second cell)
-        const levelCell = row.querySelector('td:nth-child(2)');
-        if (levelCell) {
-            levelCell.innerHTML = highlightSearchTerms(originalLevel);
-        }
-        
-        // Update message cell (last cell)
-        const messageCell = row.querySelector('td:last-child');
-        if (!messageCell) return;
-        
-        // Check if it's a collapsible message or simple message
-        const collapsibleContent = messageCell.querySelector('.log-message-content');
-        
-        if (collapsibleContent) {
-            // This is a collapsible message - update the content
-            collapsibleContent.innerHTML = highlightSearchTerms(originalMessage);
-        } else {
-            // This is a simple message cell - update directly
-            messageCell.innerHTML = highlightSearchTerms(originalMessage);
-        }
-    });
+        processBatch();
+    } else {
+        // Process all rows at once for small datasets
+        rows.forEach(updateRowHighlighting);
+    }
+}
+
+function updateRowHighlighting(row) {
+    const originalMessage = row.getAttribute('data-message');
+    const originalTimestamp = row.getAttribute('data-timestamp');
+    const originalLevel = row.getAttribute('data-level');
+    
+    if (!originalMessage || !originalTimestamp || !originalLevel) return;
+    
+    // Update timestamp cell (first cell)
+    const timestampCell = row.querySelector('td:first-child');
+    if (timestampCell) {
+        timestampCell.innerHTML = highlightSearchTerms(originalTimestamp);
+    }
+    
+    // Update level cell (second cell)
+    const levelCell = row.querySelector('td:nth-child(2)');
+    if (levelCell) {
+        levelCell.innerHTML = highlightSearchTerms(originalLevel);
+    }
+    
+    // Update message cell (last cell)
+    const messageCell = row.querySelector('td:last-child');
+    if (!messageCell) return;
+    
+    // Check if it's a collapsible message or simple message
+    const collapsibleContent = messageCell.querySelector('.log-message-content');
+    
+    if (collapsibleContent) {
+        // This is a collapsible message - update the content
+        collapsibleContent.innerHTML = highlightSearchTerms(originalMessage);
+    } else {
+        // This is a simple message cell - update directly
+        messageCell.innerHTML = highlightSearchTerms(originalMessage);
+    }
 }
 
 function getLogRowClass(level) {
@@ -583,6 +640,18 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function escapeHtmlFast(text) {
+    if (!text) return '';
+    
+    // Fast HTML escaping without DOM manipulation
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
 }
 
 // Function to set the initial sort direction from server model
