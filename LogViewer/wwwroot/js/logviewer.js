@@ -353,11 +353,16 @@ function createCollapsibleMessageCell(message, index) {
     // Apply search highlighting to the message
     const highlightedMessage = highlightSearchTerms(message);
     
-    // Check if message has multiple lines (more than 2)
+    // Check if message should be collapsible
     const lines = message.split('\n');
-    const hasMultipleLines = lines.length > 2;
+    const hasActualLineBreaks = lines.length > 2;
     
-    if (!hasMultipleLines) {
+    // Also check for very long single lines that would wrap
+    const hasLongSingleLine = lines.length <= 2 && wouldTextSpanMultipleLines(message);
+    
+    const shouldBeCollapsible = hasActualLineBreaks || hasLongSingleLine;
+    
+    if (!shouldBeCollapsible) {
         // Simple case: just show the message with highlighting
         td.innerHTML = highlightedMessage;
         return td;
@@ -405,6 +410,45 @@ function createCollapsibleMessageCell(message, index) {
     td.appendChild(container);
     
     return td;
+}
+
+function wouldTextSpanMultipleLines(text) {
+    // First, use character length as a quick heuristic (faster)
+    // Approximate 120 characters per line for monospace font in typical table cell
+    if (text.length > 400) { // ~3+ lines worth of text - definitely long
+        return true;
+    }
+    
+    // For borderline cases, do actual measurement
+    if (text.length > 284) { // Might span multiple lines, worth measuring
+        return measureTextHeight(text);
+    }
+    
+    return false;
+}
+
+function measureTextHeight(text) {
+    // Create a temporary element to measure text height
+    const tempDiv = document.createElement('div');
+    tempDiv.style.cssText = `
+        position: absolute;
+        visibility: hidden;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 0.9em;
+        line-height: 1.4em;
+        width: 400px; // Approximate table cell width
+        max-width: 400px;
+    `;
+    tempDiv.textContent = text;
+    
+    document.body.appendChild(tempDiv);
+    const height = tempDiv.offsetHeight;
+    document.body.removeChild(tempDiv);
+    
+    // If height is more than 2.8em (2 lines), it should be collapsible
+    return height > 2.8 * 16; // 16px base font size * 2.8em
 }
 
 // Store current search terms for highlighting
