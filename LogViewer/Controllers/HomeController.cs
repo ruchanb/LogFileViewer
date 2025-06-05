@@ -34,14 +34,14 @@ public class HomeController : Controller
     }
 
     [Authorize]
-    public async Task<IActionResult> LogViewer(string folder, string file, LogFilterOptions filterOptions, SortField? sortField = null, SortDirection? tableSortDirection = null)
+    public IActionResult LogViewer(string folder, string file, LogFilterOptions filterOptions, SortField? sortField = null, SortDirection? tableSortDirection = null)
     {
         var viewModel = new LogViewerViewModel
         {
             LogFolders = _adminService.GetLogFolders(),
             FilterOptions = filterOptions ?? new LogFilterOptions()
         };
-        
+
         // Handle table sorting
         if (sortField.HasValue)
         {
@@ -53,8 +53,9 @@ public class HomeController : Controller
             else if (viewModel.FilterOptions.SortField == SortField.Timestamp && viewModel.FilterOptions.TableSortDirection == viewModel.FilterOptions.SortDirection)
             {
                 // Toggle sort direction when clicking the same column
-                viewModel.FilterOptions.TableSortDirection = viewModel.FilterOptions.TableSortDirection == SortDirection.Ascending 
-                    ? SortDirection.Descending 
+                viewModel.FilterOptions.TableSortDirection = viewModel.FilterOptions.TableSortDirection == SortDirection.Ascending
+                    ? SortDirection.Descending
+
                     : SortDirection.Ascending;
             }
         }
